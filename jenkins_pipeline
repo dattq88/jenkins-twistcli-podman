@@ -1,0 +1,38 @@
+pipeline {
+    agent any
+
+    environment {
+        TWISTLOCK_USER = 'c7f262ae-d41f-45c3-a86a-a275ec861002'
+        TWISTLOCK_PASSWORD = 'c+ogla8Sg74rP19H24ndfnjgbng='
+        SUDO_PASSWORD = 'Qaz@1234'
+    }
+
+    stages {
+        stage('Build Image') {
+            steps {
+                script {
+                    // Xây dựng hình ảnh Docker với sudo podman
+                    sh """
+                        echo ${SUDO_PASSWORD} | sudo -S podman build --no-cache -t dev/my-ubuntu:${BUILD_NUMBER} .
+                    """
+                }
+            }
+        }
+
+        stage('Scan Image') {
+            steps {
+                script {
+                    // Quét hình ảnh Docker với twistcli
+                    sh """
+                        echo ${SUDO_PASSWORD} | sudo -S ./twistcli images scan \
+                            --podman-path /usr/bin/podman \
+                            --address https://us-east1.cloud.twistlock.com/us-1-113034210 \
+                            --user ${env.TWISTLOCK_USER} \
+                            --password ${env.TWISTLOCK_PASSWORD} \
+                            --details dev/my-ubuntu:${BUILD_NUMBER}
+                    """
+                }
+            }
+        }
+    }
+}
